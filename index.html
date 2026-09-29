@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ModeLuxe Print</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="card">
+
+  <!-- PAGE 1 -->
+  <div id="page1">
+
+    <h1>ModeLuxe Print</h1>
+    <p class="sub">Upload PDF • Pay • Instant Print</p>
+
+    <div id="priceBox">
+      <h2>Total ₹0</h2>
+      <p>B/W ₹3 | Colour ₹20</p>
+    </div>
+
+    <input type="file" accept=".pdf">
+
+    <select>
+      <option>Black & White</option>
+      <option>Color</option>
+    </select>
+
+    <input type="number" value="1" min="1">
+
+    <label>Paper Size</label>
+    <select id="paper">
+      <option>A4</option>
+      <option>A5</option>
+    </select>
+
+    <button id="continueBtn">Continue</button>
+
+  </div>
+
+  <!-- PAGE 2 -->
+  <div id="page2" style="display:none;">
+
+    <h1>UPI Payment</h1>
+
+    <h2 id="payAmount">₹0</h2>
+
+    <button id="gpay">Google Pay</button>
+    <button id="phonepe">PhonePe</button>
+    <button id="paytm">Paytm</button>
+    <button id="sbi">SBI YONO</button>
+
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

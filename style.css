@@ -1,0 +1,101 @@
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:Arial, sans-serif;
+}
+
+body{
+  background:#08173A;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+  padding:15px;
+}
+
+.card{
+  width:100%;
+  max-width:420px;
+  background:#fff;
+  border-radius:22px;
+  padding:22px;
+}
+
+h1{
+  text-align:center;
+  color:#2563EB;
+  font-size:42px;
+  margin-bottom:8px;
+}
+
+.sub{
+  text-align:center;
+  color:#64748B;
+  margin-bottom:18px;
+}
+
+#priceBox{
+  background:#EAF3FF;
+  border:2px solid #2563EB;
+  border-radius:16px;
+  padding:18px;
+  text-align:center;
+  margin-bottom:20px;
+}
+
+#priceBox h2{
+  color:#2563EB;
+  font-size:28px;
+  margin-bottom:6px;
+}
+
+#priceBox p{
+  color:#64748B;
+  font-size:16px;
+}
+
+label{
+  display:block;
+  margin:10px 0 6px;
+  font-size:16px;
+  font-weight:bold;
+}
+
+input,select{
+  width:100%;
+  padding:15px;
+  border:2px solid #D1D5DB;
+  border-radius:14px;
+  font-size:18px;
+  margin-bottom:15px;
+}
+
+button{
+  width:100%;
+  padding:16px;
+  border:none;
+  border-radius:16px;
+  background:#2563EB;
+  color:#fff;
+  font-size:22px;
+  font-weight:bold;
+  margin-top:10px;
+}
+
+#page2 h2{
+  text-align:center;
+  font-size:22px;
+  margin-bottom:10px;
+}
+
+#payAmount{
+  text-align:center;
+  color:#2563EB;
+  font-size:48px;
+  margin-bottom:25px;
+}
+
+#page2 button{
+  margin-bottom:14px;
+}

@@ -77,6 +77,7 @@ const RAZORPAY_KEY_ID = "rzp_live_Ti7WZmhd4OhCRO";
 const WORKER_URL =
   "https://modeluxe-payment.vaishumodeluxe.workers.dev";
 
+
 async function openRazorpay() {
 
   if (totalAmount <= 0) {
@@ -86,9 +87,9 @@ async function openRazorpay() {
 
   try {
 
-    // ==============================
-    // STEP 1: CREATE ORDER
-    // ==============================
+    // ==================================
+    // 1. CREATE RAZORPAY ORDER
+    // ==================================
 
     const orderResponse = await fetch(
       WORKER_URL + "/create-order",
@@ -100,17 +101,23 @@ async function openRazorpay() {
         },
 
         body: JSON.stringify({
-          amount: totalAmount * 100
+          amount: Math.round(totalAmount * 100)
         })
       }
     );
 
+
     const orderData = await orderResponse.json();
 
-    console.log("Order response:", orderData);
+    console.log("Worker order response:", orderData);
+
 
     if (!orderResponse.ok || !orderData.id) {
-      console.error(orderData);
+
+      console.error(
+        "Order creation failed:",
+        orderData
+      );
 
       alert(
         "Payment order create nahi ho saka.\n\n" +
@@ -120,9 +127,10 @@ async function openRazorpay() {
       return;
     }
 
-    // ==============================
-    // STEP 2: OPEN RAZORPAY
-    // ==============================
+
+    // ==================================
+    // 2. OPEN RAZORPAY CHECKOUT
+    // ==================================
 
     const options = {
 
@@ -138,13 +146,18 @@ async function openRazorpay() {
 
       description: "ModeLuxe Print Payment",
 
+
       handler: async function (response) {
 
-        console.log("Razorpay response:", response);
+        console.log(
+          "Razorpay payment response:",
+          response
+        );
 
-        // ==============================
-        // STEP 3: VERIFY PAYMENT
-        // ==============================
+
+        // ==================================
+        // 3. VERIFY PAYMENT ON CLOUDFLARE
+        // ==================================
 
         try {
 
@@ -172,17 +185,20 @@ async function openRazorpay() {
             }
           );
 
+
           const verifyData =
             await verifyResponse.json();
 
+
           console.log(
-            "Verification response:",
+            "Payment verification:",
             verifyData
           );
 
+
           if (
             verifyResponse.ok &&
-            verifyData.success
+            verifyData.success === true
           ) {
 
             alert(
@@ -191,6 +207,17 @@ async function openRazorpay() {
               response.razorpay_payment_id
             );
 
+
+            // ==================================
+            // PAYMENT SUCCESS
+            // AUTO PRINT WILL BE ADDED HERE
+            // ==================================
+
+            console.log(
+              "Payment verified. Ready for printing."
+            );
+
+
           } else {
 
             alert(
@@ -198,6 +225,7 @@ async function openRazorpay() {
             );
 
           }
+
 
         } catch (error) {
 
@@ -212,26 +240,66 @@ async function openRazorpay() {
         }
       },
 
+
+      // ==================================
+      // PAYMENT FAILED
+      // ==================================
+
       modal: {
+
         ondismiss: function () {
-          console.log("Payment window closed.");
+
+          console.log(
+            "Razorpay checkout closed."
+          );
+
         }
+
       },
+
 
       theme: {
         color: "#08173A"
       }
+
     };
+
 
     const razorpay =
       new Razorpay(options);
 
+
+    // Razorpay internal payment failure
+    razorpay.on(
+      "payment.failed",
+      function (response) {
+
+        console.error(
+          "Razorpay payment failed:",
+          response
+        );
+
+        alert(
+          "Payment Failed\n\n" +
+          (
+            response.error &&
+            response.error.description
+              ? response.error.description
+              : "Razorpay payment failed."
+          )
+        );
+
+      }
+    );
+
+
     razorpay.open();
+
 
   } catch (error) {
 
     console.error(
-      "Payment error:",
+      "Payment start error:",
       error
     );
 
@@ -239,6 +307,7 @@ async function openRazorpay() {
       "Payment start nahi ho saka.\n\n" +
       error.message
     );
+
   }
 }
 

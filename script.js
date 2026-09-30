@@ -72,7 +72,7 @@ continueBtn.addEventListener("click", () => {
 // RAZORPAY PAYMENT
 // ==============================
 
-const RAZORPAY_KEY_ID = "rzp_live_Ti7WZmhd4OhCRO";
+const RAZORPAY_KEY_ID = "rzp_live_TiLvRgu9GruQuj";
 
 const WORKER_URL =
   "https://modeluxe-payment.vaishumodeluxe.workers.dev";

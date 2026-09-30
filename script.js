@@ -16,64 +16,116 @@ const sbi = document.getElementById("sbi");
 const continueBtn = document.getElementById("continueBtn");
 
 let pages = 0;
+let totalAmount = 0;
+
+
+// ==============================
+// PRICE CALCULATION
+// ==============================
 
 function updatePrice() {
+
+  // फिलहाल PDF select होने पर 1 page
   pages = fileInput.files.length ? 1 : 0;
 
   const copies = Number(copiesInput.value) || 1;
-  const rate = colorSelect.value === "Color" ? 20 : 3;
-  const total = pages * copies * rate;
 
-  totalText.innerText = "Total ₹" + total;
+  // B/W ₹3, Colour ₹20
+  const rate = colorSelect.value === "Color" ? 20 : 3;
+
+  totalAmount = pages * copies * rate;
+
+  totalText.innerText = "Total ₹" + totalAmount;
 }
+
+
+// ==============================
+// INPUT EVENTS
+// ==============================
 
 fileInput.addEventListener("change", updatePrice);
 copiesInput.addEventListener("input", updatePrice);
 colorSelect.addEventListener("change", updatePrice);
 
+
+// ==============================
+// CONTINUE BUTTON
+// ==============================
+
 continueBtn.addEventListener("click", () => {
 
-  const copies = Number(copiesInput.value) || 1;
-  const rate = colorSelect.value === "Color" ? 20 : 3;
-  const total = pages * copies * rate;
+  if (!fileInput.files.length) {
+    alert("Please select a PDF file first.");
+    return;
+  }
 
-  payAmount.innerText = "₹" + total;
+  updatePrice();
+
+  payAmount.innerText = "₹" + totalAmount;
 
   page1.style.display = "none";
   page2.style.display = "block";
-
 });
 
-const UPI_ID = "Q186454114@ybl";
-const NAME = "Vaishu ModeLuxe";
 
-function pay() {
+// ==============================
+// RAZORPAY PAYMENT
+// ==============================
 
-  const amount = payAmount.innerText.replace("₹","");
+// यहाँ बाद में अपनी Razorpay Key ID डालनी है
+const RAZORPAY_KEY_ID = "YOUR_RAZORPAY_KEY_ID";
 
-  const url =
-  `upi://pay?pa=${UPI_ID}&pn=${NAME}&am=${amount}&cu=INR`;
+function openRazorpay() {
 
-  window.location.href = url;
+  if (totalAmount <= 0) {
+    alert("Invalid payment amount.");
+    return;
+  }
+
+  const options = {
+
+    key: RAZORPAY_KEY_ID,
+
+    // Razorpay amount paise में लेता है
+    amount: totalAmount * 100,
+
+    currency: "INR",
+
+    name: "Vaishu ModeLuxe",
+
+    description: "ModeLuxe Print Payment",
+
+    handler: function (response) {
+
+      console.log(
+        "Payment ID:",
+        response.razorpay_payment_id
+      );
+
+      alert(
+        "Payment Successful\nPayment ID: " +
+        response.razorpay_payment_id
+      );
+    },
+
+    theme: {}
+  };
+
+  const razorpay = new Razorpay(options);
+
+  razorpay.open();
 }
 
-gpay.onclick = pay;
-phonepe.onclick = pay;
-paytm.onclick = pay;
-sbi.onclick = pay;
 
+// ==============================
+// PAYMENT BUTTONS
+// ==============================
+
+gpay.onclick = openRazorpay;
+phonepe.onclick = openRazorpay;
+paytm.onclick = openRazorpay;
+sbi.onclick = openRazorpay;
+
+
+// Initial price
 updatePrice();
-
-function openUPI() {
-  const amount = payAmount.innerText.replace("₹","");
-
-  const url =
-    `upi://pay?pa=Q186454114@ybl&pn=Vaishu%20ModeLuxe&am=${amount}&cu=INR`;
-
-  window.open(url, "_system");
-}
-
-gpay.onclick = openUPI;
-phonepe.onclick = openUPI;
-paytm.onclick = openUPI;
-sbi.onclick = openUPI;

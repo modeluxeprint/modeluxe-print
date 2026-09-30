@@ -114,18 +114,27 @@ async function openRazorpay() {
 
     if (!orderResponse.ok || !orderData.id) {
 
-      console.error(
-        "Order creation failed:",
-        orderData
-      );
+  console.error(
+    "Order creation failed:",
+    orderData
+  );
 
-      alert(
-        "Payment order create nahi ho saka.\n\n" +
-        (orderData.error || "Unknown error")
-      );
+  const errorMessage =
+    orderData.message ||
+    orderData.razorpay_error?.description ||
+    orderData.razorpay_error?.reason ||
+    orderData.error?.description ||
+    orderData.error?.reason ||
+    orderData.error ||
+    JSON.stringify(orderData);
 
-      return;
-    }
+  alert(
+    "Payment order create nahi ho saka.\n\n" +
+    errorMessage
+  );
+
+  return;
+}
 
 
     // ==================================

@@ -24,7 +24,6 @@ let totalAmount = 0;
 // ==============================
 
 function updatePrice() {
-
   // फिलहाल PDF select होने पर 1 page
   pages = fileInput.files.length ? 1 : 0;
 
@@ -69,255 +68,27 @@ continueBtn.addEventListener("click", () => {
 
 
 // ==============================
-// RAZORPAY PAYMENT
+// DIRECT UPI INTENT PAYMENT
 // ==============================
 
-const RAZORPAY_KEY_ID = "rzp_live_TiLvRgu9GruQuj";
-
-const WORKER_URL =
-  "https://modeluxe-payment.vaishumodeluxe.workers.dev";
-
-
-async function openRazorpay() {
+function openDirectUPI() {
 
   if (totalAmount <= 0) {
     alert("Invalid payment amount.");
     return;
   }
 
-  try {
-
-    // ==================================
-    // 1. CREATE RAZORPAY ORDER
-    // ==================================
-
-    const orderResponse = await fetch(
-      WORKER_URL + "/create-order",
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json"
-        },
-
-        body: JSON.stringify({
-          amount: Math.round(totalAmount * 100)
-        })
-      }
-    );
-
-
-    const orderData = await orderResponse.json();
-
-    console.log("Worker order response:", orderData);
-
-
-    if (!orderResponse.ok || !orderData.id) {
-
-  console.error(
-    "Order creation failed:",
-    orderData
-  );
-
-  const errorMessage =
-    orderData.message ||
-    orderData.razorpay_error?.description ||
-    orderData.razorpay_error?.reason ||
-    orderData.error?.description ||
-    orderData.error?.reason ||
-    orderData.error ||
-    JSON.stringify(orderData);
-
-  alert(
-    "Payment order create nahi ho saka.\n\n" +
-    errorMessage
-  );
-
-  return;
-}
-
-
-    // ==================================
-    // 2. OPEN RAZORPAY CHECKOUT
-    // ==================================
-
-    const options = {
-
-      key: RAZORPAY_KEY_ID,
-
-      amount: orderData.amount,
-
-      currency: orderData.currency,
-
-      order_id: orderData.id,
-
-      name: "Vaishu ModeLuxe",
-
-      description: "ModeLuxe Print Payment",
-
-
-      handler: async function (response) {
-
-        console.log(
-          "Razorpay payment response:",
-          response
-        );
-
-
-        // ==================================
-        // 3. VERIFY PAYMENT ON CLOUDFLARE
-        // ==================================
-
-        try {
-
-          const verifyResponse = await fetch(
-            WORKER_URL + "/verify-payment",
-            {
-              method: "POST",
-
-              headers: {
-                "Content-Type": "application/json"
-              },
-
-              body: JSON.stringify({
-
-                razorpay_order_id:
-                  response.razorpay_order_id,
-
-                razorpay_payment_id:
-                  response.razorpay_payment_id,
-
-                razorpay_signature:
-                  response.razorpay_signature
-
-              })
-            }
-          );
-
-
-          const verifyData =
-            await verifyResponse.json();
-
-
-          console.log(
-            "Payment verification:",
-            verifyData
-          );
-
-
-          if (
-            verifyResponse.ok &&
-            verifyData.success === true
-          ) {
-
-            alert(
-              "Payment Successful!\n\n" +
-              "Payment ID: " +
-              response.razorpay_payment_id
-            );
-
-
-            // ==================================
-            // PAYMENT SUCCESS
-            // AUTO PRINT WILL BE ADDED HERE
-            // ==================================
-
-            console.log(
-              "Payment verified. Ready for printing."
-            );
-
-
-          } else {
-
-            alert(
-              "Payment verification failed."
-            );
-
-          }
-
-
-        } catch (error) {
-
-          console.error(
-            "Verification error:",
-            error
-          );
-
-          alert(
-            "Payment verification mein problem aa gayi."
-          );
-        }
-      },
-
-
-      // ==================================
-      // PAYMENT FAILED
-      // ==================================
-
-      modal: {
-
-        ondismiss: function () {
-
-          console.log(
-            "Razorpay checkout closed."
-          );
-
-        }
-
-      },
-
-
-      theme: {
-        color: "#08173A"
-      }
-
-    };
-
-
-    const razorpay =
-      new Razorpay(options);
-
-
-    // Razorpay internal payment failure
-    razorpay.on(
-      "payment.failed",
-      function (response) {
-
-        console.error(
-          "Razorpay payment failed:",
-          response
-        );
-
-        alert(
-          "Payment Failed\n\n" +
-          (
-            response.error &&
-            response.error.description
-              ? response.error.description
-              : "Razorpay payment failed."
-          )
-        );
-
-      }
-    );
-
-
-    razorpay.open();
-
-
-  } catch (error) {
-
-    console.error(
-      "Payment start error:",
-      error
-    );
-
-    alert(
-      "Payment start nahi ho saka.\n\n" +
-      error.message
-    );
-
-  }
+  // यहाँ अपनी असली UPI ID डालें जिस पर पैसे मंगाने हैं
+  const upiID = "q186454114@ybl"; 
+  const payeeName = "Vaishu ModeLuxe";
+  
+  // UPI Deep Link URL (डायनेमिक अमाउंट के साथ)
+  const upiUrl = `upi://pay?pa=${upiID}&pn=${encodeURIComponent(payeeName)}&am=${totalAmount}&cu=INR&tn=PrintStationPayment`;
+
+  console.log("Opening UPI URL:", upiUrl);
+
+  // यूजर के फोन में UPI पेमेंट ऐप खोलने की कोशिश करें
+  window.location.href = upiUrl;
 }
 
 
@@ -325,10 +96,10 @@ async function openRazorpay() {
 // PAYMENT BUTTONS
 // ==============================
 
-gpay.onclick = openRazorpay;
-phonepe.onclick = openRazorpay;
-paytm.onclick = openRazorpay;
-sbi.onclick = openRazorpay;
+gpay.onclick = openDirectUPI;
+phonepe.onclick = openDirectUPI;
+paytm.onclick = openDirectUPI;
+sbi.onclick = openDirectUPI;
 
-// Initial price
+// Initial price update
 updatePrice();

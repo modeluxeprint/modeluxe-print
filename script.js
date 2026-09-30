@@ -73,7 +73,7 @@ continueBtn.addEventListener("click", () => {
 // ==============================
 
 // यहाँ बाद में अपनी Razorpay Key ID डालनी है
-const RAZORPAY_KEY_ID = "YOUR_RAZORPAY_KEY_ID";
+const RAZORPAY_KEY_ID = "rzp_live_Ti7WZmhd4OhCRO";
 
 function openRazorpay() {
 

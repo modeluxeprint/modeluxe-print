@@ -79,7 +79,8 @@ function openDirectUPI() {
   }
 
   // यहाँ अपनी असली UPI ID डालें जिस पर पैसे मंगाने हैं
-  const upiID = "q186454114@ybl"; 
+  const upiID = "9719505955@sbi"; 
+  
   const payeeName = "Vaishu ModeLuxe";
   
   // UPI Deep Link URL (डायनेमिक अमाउंट के साथ)

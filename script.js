@@ -72,48 +72,174 @@ continueBtn.addEventListener("click", () => {
 // RAZORPAY PAYMENT
 // ==============================
 
-// यहाँ बाद में अपनी Razorpay Key ID डालनी है
 const RAZORPAY_KEY_ID = "rzp_live_Ti7WZmhd4OhCRO";
 
-function openRazorpay() {
+const WORKER_URL =
+  "https://modeluxe-payment.vaishumodeluxe.workers.dev";
+
+async function openRazorpay() {
 
   if (totalAmount <= 0) {
     alert("Invalid payment amount.");
     return;
   }
 
-  const options = {
+  try {
 
-    key: RAZORPAY_KEY_ID,
+    // ==============================
+    // STEP 1: CREATE ORDER
+    // ==============================
 
-    // Razorpay amount paise में लेता है
-    amount: totalAmount * 100,
+    const orderResponse = await fetch(
+      WORKER_URL + "/create-order",
+      {
+        method: "POST",
 
-    currency: "INR",
+        headers: {
+          "Content-Type": "application/json"
+        },
 
-    name: "Vaishu ModeLuxe",
+        body: JSON.stringify({
+          amount: totalAmount * 100
+        })
+      }
+    );
 
-    description: "ModeLuxe Print Payment",
+    const orderData = await orderResponse.json();
 
-    handler: function (response) {
+    console.log("Order response:", orderData);
 
-      console.log(
-        "Payment ID:",
-        response.razorpay_payment_id
-      );
+    if (!orderResponse.ok || !orderData.id) {
+      console.error(orderData);
 
       alert(
-        "Payment Successful\nPayment ID: " +
-        response.razorpay_payment_id
+        "Payment order create nahi ho saka.\n\n" +
+        (orderData.error || "Unknown error")
       );
-    },
 
-    theme: {}
-  };
+      return;
+    }
 
-  const razorpay = new Razorpay(options);
+    // ==============================
+    // STEP 2: OPEN RAZORPAY
+    // ==============================
 
-  razorpay.open();
+    const options = {
+
+      key: RAZORPAY_KEY_ID,
+
+      amount: orderData.amount,
+
+      currency: orderData.currency,
+
+      order_id: orderData.id,
+
+      name: "Vaishu ModeLuxe",
+
+      description: "ModeLuxe Print Payment",
+
+      handler: async function (response) {
+
+        console.log("Razorpay response:", response);
+
+        // ==============================
+        // STEP 3: VERIFY PAYMENT
+        // ==============================
+
+        try {
+
+          const verifyResponse = await fetch(
+            WORKER_URL + "/verify-payment",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type": "application/json"
+              },
+
+              body: JSON.stringify({
+
+                razorpay_order_id:
+                  response.razorpay_order_id,
+
+                razorpay_payment_id:
+                  response.razorpay_payment_id,
+
+                razorpay_signature:
+                  response.razorpay_signature
+
+              })
+            }
+          );
+
+          const verifyData =
+            await verifyResponse.json();
+
+          console.log(
+            "Verification response:",
+            verifyData
+          );
+
+          if (
+            verifyResponse.ok &&
+            verifyData.success
+          ) {
+
+            alert(
+              "Payment Successful!\n\n" +
+              "Payment ID: " +
+              response.razorpay_payment_id
+            );
+
+          } else {
+
+            alert(
+              "Payment verification failed."
+            );
+
+          }
+
+        } catch (error) {
+
+          console.error(
+            "Verification error:",
+            error
+          );
+
+          alert(
+            "Payment verification mein problem aa gayi."
+          );
+        }
+      },
+
+      modal: {
+        ondismiss: function () {
+          console.log("Payment window closed.");
+        }
+      },
+
+      theme: {
+        color: "#08173A"
+      }
+    };
+
+    const razorpay =
+      new Razorpay(options);
+
+    razorpay.open();
+
+  } catch (error) {
+
+    console.error(
+      "Payment error:",
+      error
+    );
+
+    alert(
+      "Payment start nahi ho saka.\n\n" +
+      error.message
+    );
+  }
 }
 
 
@@ -125,7 +251,6 @@ gpay.onclick = openRazorpay;
 phonepe.onclick = openRazorpay;
 paytm.onclick = openRazorpay;
 sbi.onclick = openRazorpay;
-
 
 // Initial price
 updatePrice();

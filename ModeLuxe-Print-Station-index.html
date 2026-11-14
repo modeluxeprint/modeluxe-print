@@ -18,7 +18,17 @@ main{max-width:680px;margin:-12px auto 35px;padding:0 14px}
 .card{background:white;border:1px solid var(--line);border-radius:18px;padding:18px;margin:14px 0;box-shadow:0 5px 18px #12345a0b}
 .step{display:flex;align-items:center;gap:10px;margin:0 0 15px;font-size:17px;font-weight:750}
 .num{width:28px;height:28px;border-radius:9px;background:#e8f2ff;color:var(--blue);display:grid;place-items:center;font-size:14px}
-.upload{border:2px dashed #9db9d8;background:#f8fbff;border-radius:15px;padding:24px 14px;text-align:center;cursor:pointer}
+.upload{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;width:100%;min-height:190px;border:2px dashed #9db9d8;background:#f8fbff;border-radius:15px;padding:22px 16px;text-align:center;cursor:pointer;overflow:hidden}
+.upload .ico{display:block;font-size:38px;line-height:1.2}
+.upload strong{display:block;width:100%;font-size:16px;line-height:1.4;overflow-wrap:anywhere}
+.upload small{display:block;width:100%;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.upload-action{display:inline-block;margin-top:5px;padding:9px 18px;border-radius:9px;background:#e8f2ff;color:#0757b8;font-weight:700;font-size:13px}
+.fileinfo{display:none;margin-top:14px;padding:14px;border-radius:12px;background:#f4f8fd;color:#29415d;font-size:13px;overflow-wrap:anywhere;border:1px solid #dce6f1;line-height:1.5}
+.file-preview{display:block;width:100%;max-height:340px;object-fit:contain;margin-top:12px;border:1px solid #dce6f1;border-radius:9px;background:#fff}
+.file-preview-frame{width:100%;height:320px;margin-top:12px;border:1px solid #dce6f1;border-radius:9px;background:#fff}
+.preview-text{max-height:220px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:10px;padding:10px;background:#fff;border:1px solid #dce6f1;border-radius:8px;color:#344a63}
+.file-meta{font-weight:700;color:#08764e}
+
 .upload .ico{font-size:34px}.upload strong{display:block;margin:8px 0 5px}.upload small{color:var(--muted)}
 input[type=file]{display:none}
 .fileinfo{display:none;margin-top:12px;padding:12px;border-radius:10px;background:#eff8f4;color:#08764e;font-size:13px;overflow-wrap:anywhere;border:1px solid #c0e6d3}
@@ -36,7 +46,7 @@ button.primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 .hint{font-size:12px;color:var(--muted);line-height:1.5;margin:10px 2px 0}
 .footer{text-align:center;color:#7a8da4;font-size:12px;padding:10px 15px 28px}
 #done{display:none;text-align:center;padding:24px 12px}#done .check{font-size:48px;color:#119b69}#done h2{color:#08764e}
-@media(max-width:420px){.hero h2{font-size:22px}.card{padding:15px}.grid{gap:9px}.choice{font-size:13px}.brand-logo{width:min(100%,560px);max-height:195px}.top{padding-top:16px}}
+@media(max-width:420px){.hero h2{font-size:22px}.card{padding:15px}.grid{gap:9px}.choice{font-size:13px}.brand-logo{width:min(100%,560px);max-height:195px}.top{padding-top:16px}.upload{min-height:175px;padding:20px 12px}.upload strong{font-size:15px}.file-preview-frame{height:260px}}
 </style>
 </head>
 <body>
@@ -46,7 +56,7 @@ button.primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
   </div>
   <div class="hero">
     <h2>Smart Print Service</h2>
-    <p>Apni PDF upload karein, print settings chunein aur apne order ka total turant dekhein.</p>
+    <p>Please upload your document, choose your print settings, and review the total amount before continuing.</p>
   </div>
 </header>
 <main>
@@ -55,10 +65,11 @@ button.primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
       <h3 class="step"><span class="num">1</span> PDF Upload Karein</h3>
       <label class="upload" for="pdfFile">
         <span class="ico">📄</span>
-        <strong>PDF file select karein</strong>
-        <small>Sirf PDF format supported hai</small>
+        <strong>Choose a document or image</strong>
+        <small>Supported: PDF, JPG, PNG, WEBP, DOCX and TXT</small>
+        <span class="upload-action">Browse files</span>
       </label>
-      <input id="pdfFile" type="file" accept="application/pdf,.pdf">
+      <input id="pdfFile" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.docx,.txt,application/pdf,image/jpeg,image/png,image/webp,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain">
       <div class="fileinfo" id="fileInfo"></div>
     </div>
     <div class="card">
@@ -77,12 +88,12 @@ button.primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
         </div></div>
         <div class="field"><label>Copies</label><input id="copies" type="number" min="1" max="100" value="1"></div>
       </div>
-      <p class="hint">Ek copy mein PDF ke sabhi pages print honge.</p>
+      <p class="hint">One copy includes all pages of your selected document.</p>
     </div>
     <div class="card">
       <h3 class="step"><span class="num">3</span> Order Summary</h3>
       <div class="summary">
-        <div class="sumrow"><span>PDF Pages</span><strong id="pages">—</strong></div>
+        <div class="sumrow"><span>Document Pages</span><strong id="pages">—</strong></div>
         <div class="sumrow"><span>Print Type</span><strong id="typeText">Black &amp; White</strong></div>
         <div class="sumrow"><span>Paper Size</span><strong id="paperText">A4</strong></div>
         <div class="sumrow"><span>Copies</span><strong id="copiesText">1</strong></div>
@@ -102,6 +113,7 @@ button.primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 </main>
 <div class="footer">&copy; Vaishu ModeLuxe Print</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
 <script>
 const fileInput=document.getElementById('pdfFile');
 const fileInfo=document.getElementById('fileInfo');
@@ -132,21 +144,72 @@ document.querySelectorAll('.choice').forEach(btn=>btn.addEventListener('click',(
   update();
 }));
 copiesInput.addEventListener('input',update);
+let currentPreviewUrl=null;
+function escapeHtml(value){
+  return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function estimateTextPages(text){
+  const words=(text.trim().match(/\S+/g)||[]).length;
+  return Math.max(1,Math.ceil(words/350));
+}
+function showFileDetails(file,previewHtml,description){
+  fileInfo.style.display='block';
+  fileInfo.innerHTML='<div class="file-meta">✓ File selected successfully</div>'+
+    '<div><strong>Name:</strong> '+escapeHtml(file.name)+'</div>'+
+    '<div><strong>Format:</strong> '+escapeHtml(file.name.split('.').pop().toUpperCase())+'</div>'+
+    '<div><strong>Pages:</strong> '+pageCount+' '+escapeHtml(description||'')+'</div>'+
+    (previewHtml||'');
+}
 fileInput.addEventListener('change',async()=>{
   const file=fileInput.files[0]; if(!file)return;
-  if(file.type!=='application/pdf'&&!file.name.toLowerCase().endsWith('.pdf')){alert('Kripya PDF file select karein.');fileInput.value='';return;}
-  selectedFile=file;pageCount=0;pagesEl.textContent='Counting…';fileInfo.style.display='block';
-  fileInfo.innerHTML='📄 <strong>Uploaded File:</strong> ' + file.name + '<br><small>Pages count ho rahe hain...</small>';
+  const name=file.name.toLowerCase();
+  const isPdf=name.endsWith('.pdf')||file.type==='application/pdf';
+  const isImage=/\.(jpg|jpeg|png|webp)$/.test(name)||file.type.startsWith('image/');
+  const isDocx=name.endsWith('.docx')||file.type==='application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const isTxt=name.endsWith('.txt')||file.type==='text/plain';
+  if(!isPdf&&!isImage&&!isDocx&&!isTxt){
+    alert('Please select a PDF, JPG, PNG, WEBP, DOCX or TXT file.');
+    fileInput.value='';return;
+  }
+  selectedFile=file;pageCount=0;pagesEl.textContent='Reading…';
+  fileInfo.style.display='block';
+  fileInfo.textContent='Please wait, your file is being prepared…';
+  update();
   try{
-    if(!window.pdfjsLib)throw new Error('PDF reader load nahi hua. Internet connection check karein.');
-    const data=await file.arrayBuffer();
-    const pdf=await pdfjsLib.getDocument({data}).promise;
-    pageCount=pdf.numPages;
-    pagesEl.textContent=pageCount;
-    fileInfo.innerHTML='✅ <strong>File Uploaded Successfully!</strong><br>📁 <strong>Name:</strong> ' + file.name + '<br>📊 <strong>Total Pages:</strong> ' + pageCount + ' Pages';
+    if(currentPreviewUrl){URL.revokeObjectURL(currentPreviewUrl);currentPreviewUrl=null;}
+    let preview='',pageLabel='';
+    if(isPdf){
+      if(!window.pdfjsLib)throw new Error('PDF reader could not load. Please check your internet connection.');
+      const data=await file.arrayBuffer();
+      const pdf=await pdfjsLib.getDocument({data}).promise;
+      pageCount=pdf.numPages;
+      currentPreviewUrl=URL.createObjectURL(file);
+      preview='<iframe class="file-preview-frame" title="PDF preview" src="'+currentPreviewUrl+'"></iframe>';
+    }else if(isImage){
+      pageCount=1;
+      currentPreviewUrl=URL.createObjectURL(file);
+      preview='<img class="file-preview" alt="Selected image preview" src="'+currentPreviewUrl+'">';
+      pageLabel='(1 image)';
+    }else if(isDocx){
+      if(!window.mammoth)throw new Error('DOCX preview could not load. Please check your internet connection.');
+      const result=await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()});
+      const text=result.value||'';
+      pageCount=estimateTextPages(text);
+      preview='<div class="preview-text">'+escapeHtml(text.slice(0,5000))+(text.length>5000?'…':'')+'</div>';
+      pageLabel='(estimated)';
+    }else{
+      const text=await file.text();
+      pageCount=estimateTextPages(text);
+      preview='<div class="preview-text">'+escapeHtml(text.slice(0,5000))+(text.length>5000?'…':'')+'</div>';
+      pageLabel='(estimated)';
+    }
+    pagesEl.textContent=pageCount+(pageLabel?' '+pageLabel:'');
+    showFileDetails(file,preview,pageLabel);
     update();
   }catch(err){
-    pageCount=0;pagesEl.textContent='Error';fileInfo.textContent='PDF read nahi ho payi: '+err.message;update();
+    selectedFile=null;pageCount=0;pagesEl.textContent='Error';
+    fileInfo.textContent='This file could not be opened: '+err.message;
+    update();
   }
 });
 payBtn.addEventListener('click',()=>{

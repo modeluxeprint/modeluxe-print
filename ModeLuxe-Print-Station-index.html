@@ -126,8 +126,9 @@ let pageCount=0, selectedType='bw', selectedPaper='A4', selectedFile=null;
 if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}
 function money(n){return '₹'+n.toLocaleString('en-IN');}
 function update(){
-  const copies=Math.max(1,Math.min(100,parseInt(copiesInput.value)||1));
-  copiesInput.value=copies;
+  // Blank value is allowed while the user is editing the Copies field.
+  const enteredCopies=copiesInput.value.trim();
+  const copies=enteredCopies===''?1:Math.max(1,Math.min(100,parseInt(enteredCopies,10)||1));
   const rate=selectedType==='bw'?5:10;
   const total=pageCount*copies*rate;
   document.getElementById('typeText').textContent=selectedType==='bw'?'Black & White':'Colour';
@@ -146,6 +147,11 @@ document.querySelectorAll('.choice').forEach(btn=>btn.addEventListener('click',(
   update();
 }));
 copiesInput.addEventListener('input',update);
+copiesInput.addEventListener('blur',()=>{
+  const enteredCopies=parseInt(copiesInput.value,10);
+  copiesInput.value=String(Number.isFinite(enteredCopies)?Math.max(1,Math.min(100,enteredCopies)):1);
+  update();
+});
 let currentPreviewUrl=null;
 function escapeHtml(value){
   return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -279,11 +285,14 @@ async function startPaymentAndPrint() {
     if (!razorpayOrderId || !amountPaise) {
       throw new Error('Worker se valid Razorpay order details nahi mile.');
     }
+    if (!orderData.key_id) {
+      throw new Error('Worker se Razorpay Key ID nahi mili. Cloudflare Worker deploy check karein.');
+    }
 
     setPaymentStatus('Razorpay payment window khul rahi hai…');
 
     const options = {
-      key: PRINT_CONFIG.razorpayKeyId,
+      key: orderData.key_id,
       amount: amountPaise,
       currency: orderData.currency || 'INR',
       name: 'Vaishu ModeLuxe Print',

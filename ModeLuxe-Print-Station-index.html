@@ -62,7 +62,7 @@ button.primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 <main>
   <section id="order">
     <div class="card">
-      <h3 class="step"><span class="num">1</span> PDF Upload Karein</h3>
+      <h3 class="step"><span class="num">1</span> Upload Your Document</h3>
       <label class="upload" for="pdfFile">
         <span class="ico">📄</span>
         <strong>Choose a document or image</strong>
@@ -101,7 +101,8 @@ button.primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
         <div class="sumrow total"><span>Total Amount</span><strong id="total">₹0</strong></div>
       </div>
       <p class="hint">B/W ₹5 per page • Colour ₹10 per page. Total = pages × copies × rate.</p>
-      <button class="primary" id="payBtn" disabled style="margin-top:16px">Continue to UPI Payment</button>
+      <button class="primary" id="payBtn" disabled style="margin-top:16px">Pay Securely &amp; Print Automatically</button>
+<p class="hint" id="paymentStatus" role="status" aria-live="polite"></p>
     </div>
   </section>
   <section class="card" id="done">
@@ -114,6 +115,7 @@ button.primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 <div class="footer">&copy; Vaishu ModeLuxe Print</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 const fileInput=document.getElementById('pdfFile');
 const fileInfo=document.getElementById('fileInfo');
@@ -212,15 +214,171 @@ fileInput.addEventListener('change',async()=>{
     update();
   }
 });
-payBtn.addEventListener('click',()=>{
-  if(!selectedFile||!pageCount)return;
-  const copies=Math.max(1,parseInt(copiesInput.value)||1);
-  const total=pageCount*copies*(selectedType==='bw'?5:10);
-  document.getElementById('order').style.display='none';
-  document.getElementById('done').style.display='block';
-  document.getElementById('doneDetails').innerHTML='File: <b>'+selectedFile.name+'</b><br>Pages: <b>'+pageCount+'</b> | Copies: <b>'+copies+'</b><br>Total Amount: <b>'+money(total)+'</b>';
-  window.scrollTo({top:0,behavior:'smooth'});
-});
+
+// ===== VAISHU MODELUXE PRINT PAYMENT + ANDROID PRINT BRIDGE =====
+// Public Razorpay Key ID belongs here. Never put the Key Secret in HTML.
+const PRINT_CONFIG = {
+  workerBaseUrl: 'https://modeluxe-print-api.vaishumodeluxe.workers.dev',
+  razorpayKeyId: 'rzp_live_TiLvRgu9GruQuj',
+  // Android Local Print Service will be built next. It will expose this local endpoint.
+  printAgentUrl: 'http://127.0.0.1:8765/print'
+};
+const paymentStatus = document.getElementById('paymentStatus');
+let paymentInProgress = false;
+
+function setPaymentStatus(message, isError=false) {
+  paymentStatus.textContent = message;
+  paymentStatus.style.color = isError ? '#b42318' : '#08764e';
+}
+
+async function readJsonResponse(response) {
+  const raw = await response.text();
+  let data = {};
+  try { data = raw ? JSON.parse(raw) : {}; } catch (_) {}
+  if (!response.ok) {
+    throw new Error(data.error || data.message || ('Server error: ' + response.status));
+  }
+  return data;
+}
+
+async function startPaymentAndPrint() {
+  if (paymentInProgress || !selectedFile || !pageCount) return;
+
+  if (!PRINT_CONFIG.razorpayKeyId || PRINT_CONFIG.razorpayKeyId.includes('PASTE_')) {
+    setPaymentStatus('Razorpay Key ID abhi HTML mein set nahi hai. Pehle apna LIVE Key ID paste karein.', true);
+    return;
+  }
+
+  const copies = Math.max(1, Math.min(100, parseInt(copiesInput.value) || 1));
+  const rate = selectedType === 'bw' ? 5 : 10;
+  const totalRupees = pageCount * copies * rate;
+  if (!Number.isSafeInteger(totalRupees) || totalRupees < 1) {
+    setPaymentStatus('Order amount valid nahi hai.', true);
+    return;
+  }
+
+  paymentInProgress = true;
+  payBtn.disabled = true;
+  setPaymentStatus('Secure order banaya ja raha hai…');
+
+  try {
+    // Worker creates the Razorpay order using its server-side Secret.
+    const orderResponse = await fetch(PRINT_CONFIG.workerBaseUrl + '/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pages: pageCount,
+        copies: copies,
+        type: selectedType,
+        paper: selectedPaper
+      })
+    });
+    const orderData = await readJsonResponse(orderResponse);
+    const razorpayOrderId = orderData.order_id || orderData.id;
+    const amountPaise = orderData.amount;
+    if (!razorpayOrderId || !amountPaise) {
+      throw new Error('Worker se valid Razorpay order details nahi mile.');
+    }
+
+    setPaymentStatus('Razorpay payment window khul rahi hai…');
+
+    const options = {
+      key: PRINT_CONFIG.razorpayKeyId,
+      amount: amountPaise,
+      currency: orderData.currency || 'INR',
+      name: 'Vaishu ModeLuxe Print',
+      description: (selectedType === 'bw' ? 'Black & White' : 'Colour') +
+        ' • ' + pageCount + ' pages • ' + copies + ' copies • ' + selectedPaper,
+      order_id: razorpayOrderId,
+      handler: async function (payment) {
+        try {
+          setPaymentStatus('Payment mil gaya. Server par verification ho rahi hai…');
+
+          const verifyResponse = await fetch(PRINT_CONFIG.workerBaseUrl + '/verify-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpay_order_id: payment.razorpay_order_id,
+              razorpay_payment_id: payment.razorpay_payment_id,
+              razorpay_signature: payment.razorpay_signature
+            })
+          });
+          const verified = await readJsonResponse(verifyResponse);
+          if (verified.verified !== true && verified.status !== 'verified' && verified.success !== true) {
+            throw new Error('Server ne payment ko verified confirm nahi kiya. Print roka gaya hai.');
+          }
+
+          setPaymentStatus('Payment verified. Android Print Service ko document bheja ja raha hai…');
+
+          // The original file stays in the browser until payment is verified.
+          // The Android app/service created in the next step will receive this multipart job.
+          const job = new FormData();
+          job.append('file', selectedFile, selectedFile.name);
+          job.append('payment_id', payment.razorpay_payment_id);
+          job.append('order_id', payment.razorpay_order_id);
+          job.append('pages', String(pageCount));
+          job.append('copies', String(copies));
+          job.append('print_type', selectedType);
+          job.append('paper_size', selectedPaper);
+          job.append('amount_paise', String(amountPaise));
+          job.append('verified', 'true');
+
+          let printResponse;
+          try {
+            printResponse = await fetch(PRINT_CONFIG.printAgentUrl, {
+              method: 'POST',
+              body: job
+            });
+          } catch (connectionError) {
+            throw new Error('Payment verified hai, lekin Android Local Print Service abhi connect nahi hai. Payment dobara na karein. Service banne ke baad pending order ko print queue mein bhejenge.');
+          }
+
+          const printResult = await readJsonResponse(printResponse);
+          if (printResult.accepted !== true && printResult.queued !== true && printResult.success !== true) {
+            throw new Error(printResult.message || 'Android Print Service ne job accept nahi ki.');
+          }
+
+          document.getElementById('order').style.display = 'none';
+          document.getElementById('done').style.display = 'block';
+          document.getElementById('doneDetails').textContent =
+            'File: ' + selectedFile.name + ' | Pages: ' + pageCount +
+            ' | Copies: ' + copies + ' | Total: ' + money(totalRupees) +
+            ' | Print job accepted by Android service.';
+          document.querySelector('#done h2').textContent = 'Payment Verified';
+          document.querySelector('#done p').textContent = 'Aapka document print queue mein bhej diya gaya hai.';
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (err) {
+          setPaymentStatus(err.message, true);
+        } finally {
+          paymentInProgress = false;
+          payBtn.disabled = false;
+        }
+      },
+      modal: {
+        ondismiss: function () {
+          paymentInProgress = false;
+          payBtn.disabled = false;
+          setPaymentStatus('Payment window band hui. Payment status check kiye bina dobara pay na karein.');
+        }
+      },
+      theme: { color: '#1267d5' }
+    };
+
+    const checkout = new Razorpay(options);
+    checkout.on('payment.failed', function (response) {
+      paymentInProgress = false;
+      payBtn.disabled = false;
+      setPaymentStatus((response.error && response.error.description) || 'Payment failed. Aap dobara try kar sakte hain.', true);
+    });
+    checkout.open();
+  } catch (err) {
+    paymentInProgress = false;
+    payBtn.disabled = false;
+    setPaymentStatus(err.message || 'Payment start nahi ho paya.', true);
+  }
+}
+
+payBtn.addEventListener('click', startPaymentAndPrint);
 update();
 </script>
 </body>

@@ -1,20 +1,76 @@
-ModeLuxe Print – Android/Chrome connection fix
+MODE LUXE PRINT — KV CLOUD QUEUE UPDATE
+======================================
 
-What changed:
-- MainActivity-CONNECTION-FIX.kt adds the Access-Control-Allow-Private-Network: true response header to the OPTIONS preflight response.
-- This addresses Chrome's Private Network Access preflight when the HTTPS GitHub Pages website calls the Android app's loopback HTTP server at 127.0.0.1:8765.
+FILES
+-----
+1) ModeLuxe-Print-Worker-KV-UPDATED.js
+   Cloudflare Worker. KV-only; no R2 bucket required.
 
-Files:
-1. MainActivity-CONNECTION-FIX.kt — replace the app module's MainActivity.kt with this file.
-2. ModeLuxe-Print-Station-UPDATED.html — unchanged website file; it already targets http://127.0.0.1:8765 and includes deluxeprint.github.io in the Android allowed origins.
+2) ModeLuxe-Print-Station-CLOUD-UPDATED.html
+   Customer website. Payment is verified and the document is sent to
+   POST /submit-print-job. It does not call 127.0.0.1 on the customer's phone.
 
-Steps:
-1. In Android Studio, replace app/src/main/java/com/modeluxe/printservice/MainActivity.kt with MainActivity-CONNECTION-FIX.kt (keep the filename MainActivity.kt).
-2. Build and install a new APK on the same Android phone.
-3. Open ModeLuxe Print Service and keep it running.
-4. Open https://deluxeprint.github.io on that same phone in Chrome.
-5. Do not make another payment for the already-paid jobs. First verify connection using the health endpoint in Chrome: http://127.0.0.1:8765/health . Then retry only the already-paid document if the page still has its pending retry option.
+3) MainActivity-CLOUD-UPDATED.kt
+   Android station controller. Polls /device/next every 8 seconds, downloads
+   the document and opens Android Print Framework. It reports status back.
 
-Note:
-- This is a targeted source change; it has not been compiled in Android Studio here.
-- Keep the existing Razorpay Worker and secret key configuration unchanged. Never put the Razorpay secret key in HTML.
+CLOUDFLARE REQUIREMENTS
+-----------------------
+Worker: modeluxe-print-api
+KV binding:
+  Variable name: PRINT_JOBS
+  Namespace: MODELUXE_PRINT_JOBS
+Secrets:
+  RAZORPAY_KEY_ID
+  RAZORPAY_KEY_SECRET
+  DEVICE_TOKEN
+
+The DEVICE_TOKEN value in this Kotlin file must exactly match the DEVICE_TOKEN
+secret in Cloudflare. This package currently uses:
+  MLP-Station-7fK9pQ2xV8mR4nT6zW3bH5cD
+
+If you change the Cloudflare secret, change the Kotlin constant too, rebuild
+and reinstall the station app. Do not share this token publicly.
+
+ANDROID PROJECT SETUP
+---------------------
+- Replace your app's existing MainActivity.kt with MainActivity-CLOUD-UPDATED.kt.
+- In app/src/main/AndroidManifest.xml, make sure this permission is present
+  directly under the <manifest> element:
+    <uses-permission android:name="android.permission.INTERNET" />
+- Keep the existing package name and Compose/theme dependencies.
+- Build and install the APK on the Realme 12 Pro station phone.
+- Open the app and keep it running while accepting print jobs. This first
+  version polls while the Activity is open; it is not yet a background service.
+
+WEBSITE
+-------
+Replace the GitHub Pages website HTML with
+ModeLuxe-Print-Station-CLOUD-UPDATED.html and publish the site.
+Only PDF and image files (JPG/JPEG/PNG/WEBP) are enabled because the current
+Android print controller can print those formats.
+
+IMPORTANT PRINT LIMITATIONS
+---------------------------
+- Android Print Framework opens its print UI. Select the Epson L130 and
+  confirm the print there. This is not silent/automatic USB printing.
+- The current Kotlin adapter does not automatically enforce the website's
+  Copies count; verify/set copies in the Android print UI before confirming.
+- Keep the controller app open and the phone online. A true persistent
+  foreground service and direct printer-driver automation are later work.
+- KV stores the PDF temporarily as base64 and has size/throughput limits.
+  Worker caps each uploaded document at 15 MB and expires temporary document
+  data after 2 hours (or deletes it after completed status).
+- Do not run a paid test until the complete Worker + website + Android app
+  have been deployed and checked. Earlier successful payments should not be
+  repeated for testing.
+
+DEPLOY ORDER
+------------
+1. Update Worker code only after confirming the three secrets and KV binding.
+2. Deploy Worker.
+3. Publish updated website HTML.
+4. Build/install updated Android controller and grant required permissions.
+5. Test /health in browser; then verify controller shows Cloud queue connected.
+6. Use a no-charge/test-mode workflow first. Do not make another live payment
+   merely to test connectivity.

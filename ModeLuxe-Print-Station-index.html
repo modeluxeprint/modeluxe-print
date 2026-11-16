@@ -113,6 +113,7 @@ button.primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
   </div>
 </header>
 <main>
+  <div id="stationWarning" role="alert" style="display:none;margin:12px 0;padding:13px 15px;border:1px solid #f0c36d;border-radius:13px;background:#fff8e8;color:#754900;font-size:13px;line-height:1.45"></div>
   <section id="order">
     <div class="card">
       <h3 class="step"><span class="num">1</span> Upload Your Document</h3>
@@ -227,7 +228,29 @@ button.primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
+const PRINT_CONFIG = {
+  workerBaseUrl: 'https://modeluxe-print-api.vaishumodeluxe.workers.dev'
+};
 const fileInput=document.getElementById('pdfFile');
+let liveRates={bw:5,color:10};
+async function refreshStationWarning(){
+  const box=document.getElementById('stationWarning');
+  try{
+    const r=await fetch(PRINT_CONFIG.workerBaseUrl+'/public/status',{cache:'no-store'});
+    const d=await r.json();
+    if(d.rates){liveRates={bw:Number(d.rates.bw)||5,color:Number(d.rates.color)||10};document.querySelector('[data-group=type][data-value=bw]').textContent='Black & White (₹'+liveRates.bw+')';document.querySelector('[data-group=type][data-value=color]').textContent='Colour (₹'+liveRates.color+')';update();}
+    if(d.warning){box.textContent='⚠️ '+(d.warning.message||'Print station issue. Please try again later.');box.style.display='block';}
+    else{box.textContent='';box.style.display='none';}
+  }catch(e){box.textContent='⚠️ Print station status is temporarily unavailable.';box.style.display='block';}
+}
+async function refreshLiveRates(){
+  try{
+    const r=await fetch(PRINT_CONFIG.workerBaseUrl+'/public/status',{cache:'no-store'});
+    const d=await r.json();
+    // Public pricing is intentionally returned by the dedicated public pricing endpoint below.
+  }catch(e){}
+}
+refreshStationWarning();window.setInterval(refreshStationWarning,10000);
 const fileInfo=document.getElementById('fileInfo');
 const pagesEl=document.getElementById('pages');
 const copiesInput=document.getElementById('copies');
@@ -239,7 +262,7 @@ function update(){
   // Blank value is allowed while the user is editing the Copies field.
   const enteredCopies=copiesInput.value.trim();
   const copies=enteredCopies===''?1:Math.max(1,Math.min(100,parseInt(enteredCopies,10)||1));
-  const rate=selectedType==='bw'?5:10;
+  const rate=selectedType==='bw'?liveRates.bw:liveRates.color;
   const total=pageCount*copies*rate;
   document.getElementById('typeText').textContent=selectedType==='bw'?'Black & White':'Colour';
   document.getElementById('paperText').textContent=selectedPaper;
@@ -333,9 +356,6 @@ fileInput.addEventListener('change',async()=>{
 
 // ===== VAISHU MODELUXE PRINT: CLOUD QUEUE (KV ONLY) =====
 // Customer phone uploads directly to Cloudflare. It never calls localhost.
-const PRINT_CONFIG = {
-  workerBaseUrl: 'https://modeluxe-print-api.vaishumodeluxe.workers.dev'
-};
 const paymentStatus = document.getElementById('paymentStatus');
 let paymentInProgress = false;
 let pendingPaidJob = null;
@@ -504,7 +524,7 @@ async function startPaymentAndPrint() {
     await checkCloudWorker();
     setPaymentStatus('Secure Razorpay order banaya ja raha hai…');
     const copies = Math.max(1, Math.min(100, parseInt(copiesInput.value, 10) || 1));
-    const rate = selectedType === 'bw' ? 5 : 10;
+    const rate = selectedType === 'bw' ? liveRates.bw : liveRates.color;
     const totalRupees = pageCount * copies * rate;
     if (!Number.isSafeInteger(totalRupees) || totalRupees < 1) throw new Error('Order amount valid nahi hai.');
     const orderResponse = await fetch(PRINT_CONFIG.workerBaseUrl + '/create-order', {

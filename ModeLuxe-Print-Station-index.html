@@ -58,6 +58,49 @@ button.primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 @keyframes modalPop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
 
 </style>
+
+<style id="modeluxe-premium-progress">
+#done.print-progress-card{display:none;text-align:left;padding:22px 18px 20px;border:1px solid rgba(20,93,170,.14);border-radius:26px;background:linear-gradient(160deg,#fff 0%,#f5f9ff 100%);box-shadow:0 18px 48px rgba(10,42,86,.12);overflow:hidden}
+.progress-brand{display:flex;align-items:center;gap:10px;padding-bottom:18px;border-bottom:1px solid #e8eef7}
+.progress-brand-mark{width:42px;height:42px;border-radius:13px;background:linear-gradient(140deg,#0a2b57,#176bd0);color:#fff;display:grid;place-items:center;font-weight:900;font-size:24px;box-shadow:0 6px 16px #1258a633}
+.progress-brand strong{display:block;color:#102b4d;font-size:16px;letter-spacing:.1px}
+.progress-brand small{display:block;color:#8292a8;font-size:9px;letter-spacing:1.7px;margin-top:2px}
+.live-pill{margin-left:auto;border-radius:20px;padding:6px 10px;background:#e9f8f0;color:#138052;font-size:10px;font-weight:800;letter-spacing:.7px}
+.live-pill i{display:inline-block;width:7px;height:7px;border-radius:50%;background:#18a66b;margin-right:5px;box-shadow:0 0 0 3px #18a66b22}
+.progress-heading{text-align:center;padding:25px 8px 17px}
+.printer-symbol{margin:0 auto 12px;width:58px;height:58px;border-radius:19px;background:#eaf3ff;color:#176bd0;display:grid;place-items:center;font-size:28px}
+.progress-heading .eyebrow{font-size:10px;letter-spacing:2px;font-weight:800;color:#7e91aa;margin:0 0 7px}
+.progress-heading h2{font-size:25px;line-height:1.2;color:#102b4d;margin:0 0 8px}
+.progress-heading p:last-child{font-size:13px;line-height:1.5;color:#65758b;margin:0}
+.progress-percent-row{display:flex;align-items:baseline;justify-content:space-between;margin:5px 1px 9px}
+.progress-percent-row strong{font-size:30px;line-height:1;color:#135db4;font-weight:850}
+.progress-percent-row span{font-size:12px;color:#63748b;font-weight:650}
+.progress-track{height:10px;background:#e5eaf1;border-radius:20px;overflow:hidden}
+.progress-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,#1471d5,#35a2ff);transition:width .45s ease;box-shadow:0 2px 8px #1471d544}
+.print-steps{margin:22px 0 18px}
+.print-step{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:54px;color:#66768b}
+.step-icon{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#edf1f6;color:#8997a8;font-size:13px;font-weight:800;border:1px solid #e2e8f0}
+.print-step strong{display:block;color:#34445a;font-size:13px;line-height:1.3}
+.print-step small{display:block;color:#8a98aa;font-size:10px;margin-top:3px}
+.step-state{font-size:10px;font-weight:800;color:#8997a8;background:#edf1f6;padding:5px 8px;border-radius:20px}
+.step-line{height:13px;width:2px;background:#e1e8f0;margin:0 0 0 14px}
+.print-step.is-done .step-icon{background:#e5f7ee;color:#128052;border-color:#c8efdb}
+.print-step.is-done .step-state{background:#e5f7ee;color:#128052}
+.print-step.is-done strong{color:#203d58}
+.print-step.is-active .step-icon{background:#e8f2ff;color:#1266c3;border:2px solid #9bc8ff}
+.print-step.is-active .step-state{background:#e8f2ff;color:#1266c3}
+.print-step.is-active strong{color:#1259a5}
+.print-step.is-complete .step-icon{background:#128052;color:white;border-color:#128052}
+.print-step.is-complete .step-state{background:#e5f7ee;color:#128052}
+.order-info{background:#f0f5fb;border:1px solid #e4ebf4;border-radius:15px;padding:12px 13px;display:grid;gap:10px}
+.order-info div{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.order-info span{font-size:10px;color:#8291a5;flex-shrink:0}
+.order-info strong{font-size:11px;color:#30445e;text-align:right;overflow-wrap:anywhere}
+.keep-open-note{display:flex;gap:7px;align-items:center;justify-content:center;text-align:center;font-size:10px;color:#7a899c;margin:15px 0 0;line-height:1.5}
+@media(min-width:560px){#done.print-progress-card{padding:26px}.progress-heading h2{font-size:28px}.print-step strong{font-size:14px}.print-step small{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.progress-fill{transition:none}}
+</style>
+
 </head>
 <body>
 <header class="top">
@@ -115,11 +158,45 @@ button.primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 <p class="hint" id="paymentStatus" role="status" aria-live="polite"></p>
     </div>
   </section>
-  <section class="card" id="done">
-    <div class="check">✓</div><h2>Thank You!</h2>
-    <p>Aapka order request taiyar hai.</p>
-    <p id="doneDetails"></p>
-    <button class="primary" onclick="location.reload()">New Print Order</button>
+  <section class="card print-progress-card" id="done">
+    <div class="progress-brand">
+      <div class="progress-brand-mark">M</div>
+      <div><strong>ModeLuxe Print</strong><small>SMART PRINT SERVICE</small></div>
+      <span class="live-pill"><i></i> LIVE</span>
+    </div>
+    <div class="progress-heading">
+      <div class="printer-symbol" id="processIcon">🖨</div>
+      <p class="eyebrow">YOUR PRINT ORDER</p>
+      <h2 id="processTitle">Printing Process</h2>
+      <p id="processMessage">Your document is waiting for the print station.</p>
+    </div>
+    <div class="progress-percent-row">
+      <strong id="progressPercent">35%</strong>
+      <span id="customerPrintStatus">Waiting for station…</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:35%"></div></div>
+    <div class="print-steps" aria-label="Print order progress">
+      <div class="print-step is-done" id="stepPayment">
+        <span class="step-icon">✓</span><div><strong>Payment Received</strong><small>Payment verified securely</small></div><span class="step-state">Done</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="print-step is-done" id="stepDocument">
+        <span class="step-icon">✓</span><div><strong>Document Received</strong><small>File added to print queue</small></div><span class="step-state">Done</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="print-step is-active" id="stepPrinting">
+        <span class="step-icon">3</span><div><strong>Printing in Progress</strong><small>Print station is processing your order</small></div><span class="step-state">Waiting</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="print-step" id="stepCompleted">
+        <span class="step-icon">4</span><div><strong>Print Completed</strong><small>Collect your document</small></div><span class="step-state">Waiting</span>
+      </div>
+    </div>
+    <div class="order-info">
+      <div><span>File</span><strong id="progressFileName">Your document</strong></div>
+      <div><span>Order details</span><strong id="doneDetails">Pages and copies</strong></div>
+    </div>
+    <p class="keep-open-note"><span>🔒</span> Keep this page open. We’ll update your print status automatically.</p>
   </section>
 </main>
 
@@ -129,8 +206,19 @@ button.primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
     <h2 id="paymentSuccessTitle">Payment Received Successfully!</h2>
     <div class="order-badge">Order Placed</div>
     <p>Your payment has been verified successfully.</p>
-    <p id="paymentSuccessDetails">Your document has been sent to the print station.</p>
-    <button class="primary" id="closePaymentSuccess" type="button">Continue</button>
+    <p id="paymentSuccessDetails">Your document has been added to the print queue.</p>
+    <p style="font-weight:700;color:#1267d5">Printing process will open automatically…</p>
+  </div>
+</div>
+
+<div id="takeDocumentModal" role="dialog" aria-modal="true" aria-labelledby="takeDocumentTitle"
+     style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(4,18,39,.78);align-items:center;justify-content:center;padding:20px">
+  <div class="modal-card" style="width:min(100%,420px);background:#fff;border-radius:24px;padding:28px 22px;text-align:center;box-shadow:0 20px 70px #0004">
+    <div class="modal-check">✓</div>
+    <h2 id="takeDocumentTitle" style="color:#08764e">Printing Completed!</h2>
+    <div class="order-badge">Take Your Document</div>
+    <p>Your print job has been reported as completed by the print station.</p>
+    <button class="primary" id="takeDocumentOk" type="button">OK</button>
   </div>
 </div>
 
@@ -304,25 +392,110 @@ async function submitPaidDocument(job) {
   });
   return await readJsonResponse(response);
 }
+let activeCustomerJobId = null;
+let customerStatusTimer = null;
+let takeDocumentShown = false;
+
 function showPrintSuccess(job, result) {
   pendingPaidJob = null;
   retryPrintBtn.style.display = 'none';
-  document.getElementById('order').style.display = 'none';
-  document.getElementById('done').style.display = 'block';
-  document.getElementById('doneDetails').textContent =
-    'File: ' + job.file.name + ' | Pages: ' + job.pages + ' | Copies: ' + job.copies +
-    ' | Total: ' + money(job.totalRupees) + ' | Job ID: ' + (result.job_id || 'queued');
-  document.querySelector('#done h2').textContent = 'Order Placed Successfully';
-  document.querySelector('#done p').textContent = 'Your document is securely queued for the print station.';
+  activeCustomerJobId = result.job_id;
   document.getElementById('paymentSuccessDetails').textContent =
-    job.file.name + ' payment verified and document added to the ModeLuxe cloud print queue. Keep this page open until the station receives it.';
+    job.file.name + ' has been securely added to the ModeLuxe print queue.';
   document.getElementById('paymentSuccessModal').style.display = 'flex';
   window.scrollTo({top:0, behavior:'smooth'});
+
+  // Automatically move to the print-process screen after two seconds.
+  window.setTimeout(function () {
+    document.getElementById('paymentSuccessModal').style.display = 'none';
+    document.getElementById('order').style.display = 'none';
+    document.getElementById('done').style.display = 'block';
+    setCustomerProgress(1, 'Document received • Waiting for station', 'Order Confirmed',
+      'Your payment is verified and your document is safely queued for printing.');
+    document.getElementById('progressFileName').textContent = job.file.name;
+    document.getElementById('doneDetails').textContent =
+      job.pages + ' pages · ' + job.copies + ' copies · ' + money(job.totalRupees) +
+      ' · Job ID: ' + (result.job_id || 'queued');
+    document.getElementById('done').scrollIntoView({behavior:'smooth', block:'start'});
+    if (activeCustomerJobId) { pollCustomerPrintStatus(); customerStatusTimer = window.setInterval(pollCustomerPrintStatus, 2000); }
+  }, 2000);
 }
-document.getElementById('closePaymentSuccess').addEventListener('click', function () {
-  document.getElementById('paymentSuccessModal').style.display = 'none';
-  document.getElementById('done').scrollIntoView({behavior:'smooth', block:'start'});
+
+function setCustomerProgress(step, statusText, title, message) {
+  const steps = [
+    document.getElementById('stepPayment'),
+    document.getElementById('stepDocument'),
+    document.getElementById('stepPrinting'),
+    document.getElementById('stepCompleted')
+  ];
+  const labels = ['Done','Done','Printing','Waiting'];
+  steps.forEach((el, index) => {
+    el.classList.remove('is-done','is-active','is-complete');
+    const icon = el.querySelector('.step-icon');
+    const state = el.querySelector('.step-state');
+    if (index < step) {
+      el.classList.add('is-done');
+      icon.textContent = '✓';
+      state.textContent = 'Done';
+    } else if (index === step) {
+      el.classList.add(step === 3 ? 'is-complete' : 'is-active');
+      icon.textContent = step === 3 ? '✓' : String(index + 1);
+      state.textContent = step === 3 ? 'Done' : (step === 2 ? 'Printing' : 'In progress');
+    } else {
+      icon.textContent = String(index + 1);
+      state.textContent = 'Waiting';
+    }
+  });
+  const percent = step === 0 ? 15 : step === 1 ? 35 : step === 2 ? 65 : 100;
+  document.getElementById('progressPercent').textContent = percent + '%';
+  document.getElementById('progressFill').style.width = percent + '%';
+  document.getElementById('customerPrintStatus').textContent = statusText;
+  document.getElementById('processTitle').textContent = title;
+  document.getElementById('processMessage').textContent = message;
+  document.getElementById('processIcon').textContent = step === 3 ? '✓' : '🖨';
+}
+
+async function pollCustomerPrintStatus() {
+  if (!activeCustomerJobId || takeDocumentShown) return;
+  try {
+    const response = await fetch(
+      PRINT_CONFIG.workerBaseUrl + '/job-status/' + encodeURIComponent(activeCustomerJobId),
+      {cache:'no-store'}
+    );
+    const data = await readJsonResponse(response);
+    const status = String(data.status || '').toLowerCase();
+
+    if (status === 'queued' || status === 'received' || status === 'pending' || status === 'downloading') {
+      setCustomerProgress(1, 'Document received • Waiting for station', 'Order Confirmed',
+        'Your payment is verified and your document is safely queued for printing.');
+    } else if (status === 'printing' || status === 'processing' || status === 'started') {
+      setCustomerProgress(2, 'Printing in progress', 'Printing in Progress',
+        'Your document is being printed. Please wait and keep this page open.');
+    } else if (status === 'completed' || status === 'printed' || status === 'done') {
+      takeDocumentShown = true;
+      if (customerStatusTimer) window.clearInterval(customerStatusTimer);
+      setCustomerProgress(3, 'Print completed successfully', 'Print Completed!',
+        'Your documents have been printed successfully. Please collect them.');
+      document.getElementById('takeDocumentModal').style.display = 'flex';
+      return;
+    } else if (status === 'failed' || status === 'error') {
+      if (customerStatusTimer) window.clearInterval(customerStatusTimer);
+      setCustomerProgress(2, 'Print needs attention', 'Printing Needs Attention',
+        data.message || 'Please contact the print station operator. Do not pay again.');
+    } else {
+      setCustomerProgress(1, 'Checking print station…', 'Order Confirmed',
+        'Your document is in the secure queue. We are checking the station status.');
+    }
+  } catch (err) {
+    document.getElementById('customerPrintStatus').textContent = 'Reconnecting to print station…';
+  }
+}
+
+document.getElementById('takeDocumentOk').addEventListener('click', function () {
+  document.getElementById('takeDocumentModal').style.display = 'none';
+  document.getElementById('processMessage').textContent = 'Please take your printed document from the output tray.';
 });
+
 async function startPaymentAndPrint() {
   if (paymentInProgress || !selectedFile || !pageCount) return;
   paymentInProgress = true; payBtn.disabled = true; retryPrintBtn.style.display = 'none';

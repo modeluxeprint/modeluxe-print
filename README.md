@@ -1,76 +1,26 @@
-MODE LUXE PRINT — KV CLOUD QUEUE UPDATE
-======================================
+MODE LUXE PRINT — CORRECTED PACKAGE
+==================================
 
-FILES
+Files
 -----
-1) ModeLuxe-Print-Worker-KV-UPDATED.js
-   Cloudflare Worker. KV-only; no R2 bucket required.
+1. ModeLuxe-Print-Customer-UPDATED.html — customer page (B/W ₹5, Colour ₹10 defaults).
+2. ModeLuxe-Print-Worker-OWNER-UPDATED.js — Cloudflare Worker with owner APIs, multi-origin CORS support and stale-download recovery.
+3. MainActivity-CLOUD-UPDATED.kt — Android station controller.
+4. ModeLuxe-Print-Owner-Master-Panel.html — owner dashboard.
 
-2) ModeLuxe-Print-Station-CLOUD-UPDATED.html
-   Customer website. Payment is verified and the document is sent to
-   POST /submit-print-job. It does not call 127.0.0.1 on the customer's phone.
+IMPORTANT BEFORE BUILD / DEPLOY
+-------------------------------
+- Keep your existing Cloudflare DEVICE_TOKEN secret unchanged if you want to retain it.
+- The Kotlin file intentionally contains DEVICE_TOKEN = "REPLACE_WITH_EXISTING_DEVICE_TOKEN". Replace this placeholder locally with the exact current DEVICE_TOKEN value from your existing Android project / secure record. Do NOT paste it into chat or publish it. The Cloudflare secret value cannot be read back from the dashboard.
+- Keep MASTER_PANEL_TOKEN, RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET as Cloudflare Secrets. Never put Razorpay secret in HTML or Android code.
+- Keep KV binding PRINT_JOBS connected to MODELUXE_PRINT_JOBS.
+- Set ALLOWED_ORIGIN to https://modeluxeprint.github.io. If the owner page is hosted on another origin, set ALLOWED_ORIGINS to comma-separated exact origins, e.g. https://modeluxeprint.github.io,https://your-owner-host.example. Do not include page paths. If both pages share the same GitHub Pages origin, no extra origin is needed.
+- Deploy Worker only after confirming secrets and KV binding. Then publish customer HTML. Host owner panel on the same allowed origin at an unlinked path, or add its exact origin to ALLOWED_ORIGINS.
+- Replace the Kotlin placeholder, build APK, install it on station phone, and keep app open.
 
-3) MainActivity-CLOUD-UPDATED.kt
-   Android station controller. Polls /device/next every 8 seconds, downloads
-   the document and opens Android Print Framework. It reports status back.
-
-CLOUDFLARE REQUIREMENTS
------------------------
-Worker: modeluxe-print-api
-KV binding:
-  Variable name: PRINT_JOBS
-  Namespace: MODELUXE_PRINT_JOBS
-Secrets:
-  RAZORPAY_KEY_ID
-  RAZORPAY_KEY_SECRET
-  DEVICE_TOKEN
-
-The DEVICE_TOKEN value in this Kotlin file must exactly match the DEVICE_TOKEN
-secret in Cloudflare. This package currently uses:
-  MLP-Station-7fK9pQ2xV8mR4nT6zW3bH5cD
-
-If you change the Cloudflare secret, change the Kotlin constant too, rebuild
-and reinstall the station app. Do not share this token publicly.
-
-ANDROID PROJECT SETUP
----------------------
-- Replace your app's existing MainActivity.kt with MainActivity-CLOUD-UPDATED.kt.
-- In app/src/main/AndroidManifest.xml, make sure this permission is present
-  directly under the <manifest> element:
-    <uses-permission android:name="android.permission.INTERNET" />
-- Keep the existing package name and Compose/theme dependencies.
-- Build and install the APK on the Realme 12 Pro station phone.
-- Open the app and keep it running while accepting print jobs. This first
-  version polls while the Activity is open; it is not yet a background service.
-
-WEBSITE
--------
-Replace the GitHub Pages website HTML with
-ModeLuxe-Print-Station-CLOUD-UPDATED.html and publish the site.
-Only PDF and image files (JPG/JPEG/PNG/WEBP) are enabled because the current
-Android print controller can print those formats.
-
-IMPORTANT PRINT LIMITATIONS
----------------------------
-- Android Print Framework opens its print UI. Select the Epson L130 and
-  confirm the print there. This is not silent/automatic USB printing.
-- The current Kotlin adapter does not automatically enforce the website's
-  Copies count; verify/set copies in the Android print UI before confirming.
-- Keep the controller app open and the phone online. A true persistent
-  foreground service and direct printer-driver automation are later work.
-- KV stores the PDF temporarily as base64 and has size/throughput limits.
-  Worker caps each uploaded document at 15 MB and expires temporary document
-  data after 2 hours (or deletes it after completed status).
-- Do not run a paid test until the complete Worker + website + Android app
-  have been deployed and checked. Earlier successful payments should not be
-  repeated for testing.
-
-DEPLOY ORDER
-------------
-1. Update Worker code only after confirming the three secrets and KV binding.
-2. Deploy Worker.
-3. Publish updated website HTML.
-4. Build/install updated Android controller and grant required permissions.
-5. Test /health in browser; then verify controller shows Cloud queue connected.
-6. Use a no-charge/test-mode workflow first. Do not make another live payment
-   merely to test connectivity.
+SAFETY / LIMITATIONS
+--------------------
+- Worker queue uses Cloudflare KV, which is eventually consistent and not transactional. This update retries jobs left in downloading for over 2 minutes, but cannot guarantee exactly-once printing. Do not retry a paid job until checking its status.
+- Android Print Framework may show a print dialog. Silent unattended printing is not guaranteed.
+- Heartbeat means the app can contact Worker; it does not prove Epson printer readiness. Ink, paper-out and waste-ink-pad warnings remain manual unless actual Epson status telemetry is implemented.
+- Do not run another live payment as a connectivity test. First test /health and Owner Panel login, then verify Android heartbeat.

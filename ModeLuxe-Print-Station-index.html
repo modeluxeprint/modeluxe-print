@@ -79,7 +79,7 @@ button.primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
         <small>Supported: PDF, JPG, PNG, WEBP, DOCX and TXT</small>
         <span class="upload-action">Browse files</span>
       </label>
-      <input id="pdfFile" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.docx,.txt,application/pdf,image/jpeg,image/png,image/webp,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain">
+      <input id="pdfFile" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp">
       <div class="fileinfo" id="fileInfo"></div>
     </div>
     <div class="card">
@@ -195,10 +195,10 @@ fileInput.addEventListener('change',async()=>{
   const name=file.name.toLowerCase();
   const isPdf=name.endsWith('.pdf')||file.type==='application/pdf';
   const isImage=/\.(jpg|jpeg|png|webp)$/.test(name)||file.type.startsWith('image/');
-  const isDocx=name.endsWith('.docx')||file.type==='application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-  const isTxt=name.endsWith('.txt')||file.type==='text/plain';
-  if(!isPdf&&!isImage&&!isDocx&&!isTxt){
-    alert('Please select a PDF, JPG, PNG, WEBP, DOCX or TXT file.');
+  const isDocx=false;
+  const isTxt=false;
+  if(!isPdf&&!isImage){
+    alert('Please select a PDF, JPG, PNG or WEBP file. Android Print Controller supports PDF and image files.');
     fileInput.value='';return;
   }
   selectedFile=file;pageCount=0;pagesEl.textContent='Reading…';
@@ -243,33 +243,27 @@ fileInput.addEventListener('change',async()=>{
   }
 });
 
-// ===== VAISHU MODELUXE PRINT PAYMENT + ANDROID PRINT BRIDGE =====
-// Razorpay Key ID is public. NEVER put the Razorpay Key Secret in this HTML.
+// ===== VAISHU MODELUXE PRINT: CLOUD QUEUE (KV ONLY) =====
+// Customer phone uploads directly to Cloudflare. It never calls localhost.
 const PRINT_CONFIG = {
-  workerBaseUrl: 'https://modeluxe-print-api.vaishumodeluxe.workers.dev',
-  printAgentUrl: 'http://127.0.0.1:8765',
-  healthUrl: 'http://127.0.0.1:8765/health'
+  workerBaseUrl: 'https://modeluxe-print-api.vaishumodeluxe.workers.dev'
 };
 const paymentStatus = document.getElementById('paymentStatus');
 let paymentInProgress = false;
 let pendingPaidJob = null;
-
 function setPaymentStatus(message, isError=false) {
   paymentStatus.textContent = message;
   paymentStatus.style.color = isError ? '#b42318' : '#08764e';
 }
-
 async function readJsonResponse(response) {
   const raw = await response.text();
   let data = {};
   try { data = raw ? JSON.parse(raw) : {}; } catch (_) {}
-  if (!response.ok) {
+  if (!response.ok || data.success === false) {
     throw new Error(data.error || data.message || ('Server error: ' + response.status));
   }
   return data;
 }
-
-// Create a retry button once. It retries ONLY document delivery, never payment.
 const retryPrintBtn = document.createElement('button');
 retryPrintBtn.type = 'button';
 retryPrintBtn.className = 'primary';
@@ -279,197 +273,107 @@ retryPrintBtn.style.marginTop = '12px';
 retryPrintBtn.addEventListener('click', async () => {
   if (!pendingPaidJob || paymentInProgress) return;
   retryPrintBtn.disabled = true;
-  setPaymentStatus('Paid document Android App ko dobara bheja ja raha hai…');
   try {
-    await sendPaidDocumentToAndroid(pendingPaidJob);
-    showPrintSuccess(pendingPaidJob);
+    setPaymentStatus('Paid document Cloud Print Queue mein dobara bheja ja raha hai…');
+    const result = await submitPaidDocument(pendingPaidJob);
+    showPrintSuccess(pendingPaidJob, result);
   } catch (err) {
-    setPaymentStatus('Document abhi receive nahi hua: ' + err.message + ' | Payment dobara na karein.', true);
-  } finally {
-    retryPrintBtn.disabled = false;
-  }
+    setPaymentStatus('Payment ho chuki hai, document queue nahi hua: ' + err.message + '. Dobara payment na karein.', true);
+  } finally { retryPrintBtn.disabled = false; }
 });
 paymentStatus.insertAdjacentElement('afterend', retryPrintBtn);
-
-async function checkAndroidService() {
-  let response;
-  try {
-    response = await fetch(PRINT_CONFIG.healthUrl, {
-      method: 'GET',
-      cache: 'no-store'
-    });
-  } catch (_) {
-    throw new Error('Android Print Service nahi mil rahi. ModeLuxe Print App kholkar rakhein aur phir Retry karein. Abhi payment nahi li gayi hai.');
-  }
+async function checkCloudWorker() {
+  const response = await fetch(PRINT_CONFIG.workerBaseUrl + '/health', {cache:'no-store'});
   const data = await readJsonResponse(response);
-  if (data.success !== true) throw new Error('Android Print Service ready nahi hai.');
+  if (data.success !== true) throw new Error('Cloud Print Service ready nahi hai.');
   return data;
 }
-
-async function sendPaidDocumentToAndroid(job) {
-  if (!job || !job.file) throw new Error('Is browser session mein document file available nahi hai.');
-
-  // Check health again before sending the paid file.
-  await checkAndroidService();
-
-  const response = await fetch(PRINT_CONFIG.printAgentUrl + '/print', {
-    method: 'POST',
-    headers: {
-      'Content-Type': job.file.type || 'application/octet-stream',
-      'X-Filename': encodeURIComponent(job.file.name),
-      'X-Payment-Id': job.paymentId,
-      'X-Order-Id': job.orderId,
-      'X-Pages': String(job.pages),
-      'X-Copies': String(job.copies),
-      'X-Print-Type': job.printType,
-      'X-Paper-Size': job.paperSize,
-      'X-Amount-Paise': String(job.amountPaise),
-      'X-Payment-Verified': 'true'
-    },
-    body: job.file
+async function submitPaidDocument(job) {
+  if (!job || !job.file) throw new Error('Selected document is no longer available in this browser.');
+  const form = new FormData();
+  form.append('document', job.file, job.file.name);
+  form.append('razorpay_order_id', job.orderId);
+  form.append('razorpay_payment_id', job.paymentId);
+  form.append('razorpay_signature', job.signature);
+  form.append('pages', String(job.pages));
+  form.append('copies', String(job.copies));
+  form.append('type', job.printType);
+  form.append('paper', job.paperSize);
+  const response = await fetch(PRINT_CONFIG.workerBaseUrl + '/submit-print-job', {
+    method:'POST', body:form, cache:'no-store'
   });
-  const result = await readJsonResponse(response);
-  if (result.success !== true) {
-    throw new Error(result.error || result.message || 'Android Service ne document accept nahi kiya.');
-  }
-  return result;
+  return await readJsonResponse(response);
 }
-
-function showPrintSuccess(job) {
+function showPrintSuccess(job, result) {
   pendingPaidJob = null;
   retryPrintBtn.style.display = 'none';
   document.getElementById('order').style.display = 'none';
   document.getElementById('done').style.display = 'block';
   document.getElementById('doneDetails').textContent =
-    'File: ' + job.file.name + ' | Pages: ' + job.pages +
-    ' | Copies: ' + job.copies + ' | Total: ' + money(job.totalRupees) +
-    ' | Payment ID: ' + job.paymentId + ' | Document received by Android App.';
+    'File: ' + job.file.name + ' | Pages: ' + job.pages + ' | Copies: ' + job.copies +
+    ' | Total: ' + money(job.totalRupees) + ' | Job ID: ' + (result.job_id || 'queued');
   document.querySelector('#done h2').textContent = 'Order Placed Successfully';
-  document.querySelector('#done p').textContent = 'Your document has reached the print station.';
+  document.querySelector('#done p').textContent = 'Your document is securely queued for the print station.';
   document.getElementById('paymentSuccessDetails').textContent =
-    job.file.name + ' has been received by the ModeLuxe Print Service and added to its print queue.';
-  const modal = document.getElementById('paymentSuccessModal');
-  modal.style.display = 'flex';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+    job.file.name + ' payment verified and document added to the ModeLuxe cloud print queue. Keep this page open until the station receives it.';
+  document.getElementById('paymentSuccessModal').style.display = 'flex';
+  window.scrollTo({top:0, behavior:'smooth'});
 }
-
 document.getElementById('closePaymentSuccess').addEventListener('click', function () {
   document.getElementById('paymentSuccessModal').style.display = 'none';
-  document.getElementById('done').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.getElementById('done').scrollIntoView({behavior:'smooth', block:'start'});
 });
-
 async function startPaymentAndPrint() {
   if (paymentInProgress || !selectedFile || !pageCount) return;
-
-  paymentInProgress = true;
-  payBtn.disabled = true;
-  retryPrintBtn.style.display = 'none';
-
+  paymentInProgress = true; payBtn.disabled = true; retryPrintBtn.style.display = 'none';
   try {
-    // IMPORTANT: Do not take payment if the Android receiving service is offline.
-    setPaymentStatus('Android Print Service connection check ho raha hai…');
-    await checkAndroidService();
-
-    setPaymentStatus('Secure order banaya ja raha hai…');
+    setPaymentStatus('Cloud Print Service connection check ho raha hai…');
+    await checkCloudWorker();
+    setPaymentStatus('Secure Razorpay order banaya ja raha hai…');
     const copies = Math.max(1, Math.min(100, parseInt(copiesInput.value, 10) || 1));
     const rate = selectedType === 'bw' ? 5 : 10;
     const totalRupees = pageCount * copies * rate;
-    if (!Number.isSafeInteger(totalRupees) || totalRupees < 1) {
-      throw new Error('Order amount valid nahi hai.');
-    }
-
+    if (!Number.isSafeInteger(totalRupees) || totalRupees < 1) throw new Error('Order amount valid nahi hai.');
     const orderResponse = await fetch(PRINT_CONFIG.workerBaseUrl + '/create-order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pages: pageCount, copies, type: selectedType, paper: selectedPaper })
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({pages:pageCount, copies, type:selectedType, paper:selectedPaper})
     });
     const orderData = await readJsonResponse(orderResponse);
-    const razorpayOrderId = orderData.order_id || orderData.id;
-    const amountPaise = orderData.amount;
-    if (!razorpayOrderId || !amountPaise || !orderData.key_id) {
-      throw new Error('Worker se valid Razorpay order details nahi mile.');
-    }
-
+    if (!orderData.order_id || !orderData.amount || !orderData.key_id) throw new Error('Worker se valid Razorpay order details nahi mile.');
     setPaymentStatus('Razorpay payment window khul rahi hai…');
     const options = {
-      key: orderData.key_id,
-      amount: amountPaise,
-      currency: orderData.currency || 'INR',
-      name: 'Vaishu ModeLuxe Print',
-      description: (selectedType === 'bw' ? 'Black & White' : 'Colour') +
-        ' • ' + pageCount + ' pages • ' + copies + ' copies • ' + selectedPaper,
-      order_id: razorpayOrderId,
-      handler: async function (payment) {
-        let verifiedPayment = false;
+      key:orderData.key_id, amount:orderData.amount, currency:orderData.currency || 'INR',
+      name:'Vaishu ModeLuxe Print',
+      description:(selectedType === 'bw' ? 'Black & White' : 'Colour') + ' • ' + pageCount + ' pages • ' + copies + ' copies • ' + selectedPaper,
+      order_id:orderData.order_id,
+      handler:async function(payment) {
+        let verifiedPayment=false;
         try {
-          setPaymentStatus('Payment mil gaya. Server par verification ho rahi hai…');
-          const verifyResponse = await fetch(PRINT_CONFIG.workerBaseUrl + '/verify-payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              razorpay_order_id: payment.razorpay_order_id,
-              razorpay_payment_id: payment.razorpay_payment_id,
-              razorpay_signature: payment.razorpay_signature
-            })
-          });
-          const verified = await readJsonResponse(verifyResponse);
-          if (verified.verified !== true && verified.status !== 'verified' && verified.success !== true) {
-            throw new Error('Server ne payment verified confirm nahi ki. Print roka gaya hai.');
-          }
-          verifiedPayment = true;
-
-          // Keep the paid file in memory so the customer can retry sending it without paying again.
-          pendingPaidJob = {
-            file: selectedFile,
-            paymentId: payment.razorpay_payment_id,
-            orderId: payment.razorpay_order_id,
-            pages: pageCount,
-            copies,
-            printType: selectedType,
-            paperSize: selectedPaper,
-            amountPaise,
-            totalRupees
-          };
-
-          setPaymentStatus('Payment verified. PDF Android App ko bheji ja rahi hai…');
-          await sendPaidDocumentToAndroid(pendingPaidJob);
-          showPrintSuccess(pendingPaidJob);
-        } catch (err) {
-          if (verifiedPayment && pendingPaidJob) {
-            setPaymentStatus('Payment verify ho chuki hai, lekin document receive nahi hua: ' + err.message + ' Payment dobara na karein. App aur website connection theek karke neeche Retry button dabayein.', true);
-            retryPrintBtn.style.display = 'block';
-          } else {
-            setPaymentStatus(err.message || 'Payment verification complete nahi hui.', true);
-          }
-        } finally {
-          paymentInProgress = false;
-          payBtn.disabled = false;
-        }
+          setPaymentStatus('Payment verify karke document Cloud Queue mein bheja ja raha hai…');
+          pendingPaidJob = {file:selectedFile, paymentId:payment.razorpay_payment_id,
+            orderId:payment.razorpay_order_id, signature:payment.razorpay_signature,
+            pages:pageCount, copies, printType:selectedType, paperSize:selectedPaper,
+            amountPaise:orderData.amount, totalRupees};
+          const result = await submitPaidDocument(pendingPaidJob);
+          verifiedPayment = result.verified === true && result.queued === true;
+          if (!verifiedPayment) throw new Error('Payment verify/queue confirmation nahi mili.');
+          showPrintSuccess(pendingPaidJob, result);
+        } catch(err) {
+          // Payment may have succeeded. Keep file and signed payment data in memory for a no-charge retry.
+          if (pendingPaidJob && payment.razorpay_payment_id) {
+            setPaymentStatus('Payment successful ho sakti hai, lekin queue confirmation nahi mili: ' + err.message + '. Dobara payment na karein; neeche Retry dabayein.', true);
+            retryPrintBtn.style.display='block';
+          } else setPaymentStatus(err.message || 'Payment verification complete nahi hui.', true);
+        } finally { paymentInProgress=false; payBtn.disabled=false; }
       },
-      modal: {
-        ondismiss: function () {
-          paymentInProgress = false;
-          payBtn.disabled = false;
-          setPaymentStatus('Payment window band hui. Payment status check kiye bina dobara pay na karein.');
-        }
-      },
-      theme: { color: '#1267d5' }
+      modal:{ondismiss:function(){paymentInProgress=false;payBtn.disabled=false;setPaymentStatus('Payment window band hui. Payment status confirm kiye bina dobara pay na karein.');}},
+      theme:{color:'#1267d5'}
     };
-
     const checkout = new Razorpay(options);
-    checkout.on('payment.failed', function (response) {
-      paymentInProgress = false;
-      payBtn.disabled = false;
-      setPaymentStatus((response.error && response.error.description) || 'Payment failed. Aap dobara try kar sakte hain.', true);
-    });
+    checkout.on('payment.failed', function(response){paymentInProgress=false;payBtn.disabled=false;setPaymentStatus((response.error&&response.error.description)||'Payment failed.',true);});
     checkout.open();
-  } catch (err) {
-    paymentInProgress = false;
-    payBtn.disabled = false;
-    setPaymentStatus(err.message || 'Payment start nahi ho paya.', true);
-  }
+  } catch(err) {paymentInProgress=false;payBtn.disabled=false;setPaymentStatus(err.message||'Payment start nahi ho paya.',true);}
 }
-
 payBtn.addEventListener('click', startPaymentAndPrint);
 update();
 </script>
